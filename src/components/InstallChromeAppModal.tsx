@@ -53,7 +53,7 @@ export const InstallChromeAppModal: React.FC<InstallChromeAppModalProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                Install Chrome App Shortcut
+                Install Chrome App
               </h3>
               <p className="text-xs text-cyan-300 font-medium">
                 VPN Cost & Bandwidth Ledger

@@ -5,7 +5,6 @@ export interface AuthUser {
 }
 
 const STORAGE_KEY = 'vpn_reseller_current_user';
-const RECENT_USERS_KEY = 'vpn_reseller_recent_users';
 
 export function getSavedUser(): AuthUser | null {
   try {
@@ -17,8 +16,8 @@ export function getSavedUser(): AuthUser | null {
   }
 }
 
-export function saveUser(username: string): AuthUser {
-  const cleanUsername = username.trim() || 'operator-01';
+export function saveUser(username: string, _password?: string): AuthUser {
+  const cleanUsername = username.trim() || 'user-001';
   
   let role: AuthUser['role'] = 'operator';
   if (cleanUsername.toLowerCase().includes('admin')) {
@@ -37,11 +36,6 @@ export function saveUser(username: string): AuthUser {
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-
-    // Also update recent user history
-    const recent = getRecentUsers();
-    const updated = [cleanUsername, ...recent.filter(u => u !== cleanUsername)].slice(0, 5);
-    localStorage.setItem(RECENT_USERS_KEY, JSON.stringify(updated));
   } catch (err) {
     console.warn('Failed to save user session:', err);
   }
@@ -54,19 +48,5 @@ export function clearUser(): void {
     localStorage.removeItem(STORAGE_KEY);
   } catch {
     // Ignore
-  }
-}
-
-export function getRecentUsers(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_USERS_KEY);
-    if (!raw) return ['admin-01', 'operator-sg', 'reseller-vpn'];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
-    }
-    return ['admin-01', 'operator-sg', 'reseller-vpn'];
-  } catch {
-    return ['admin-01', 'operator-sg', 'reseller-vpn'];
   }
 }

@@ -14,7 +14,9 @@ import {
   Loader2,
   User,
   LogOut,
-  MonitorCheck
+  MonitorCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { formatLKR, formatMonthName } from '../utils/formatters';
 import { MonthSummary } from '../types';
@@ -46,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenInstallModal,
   isInstalled,
 }) => {
+  const [hideUsername, setHideUsername] = React.useState<boolean>(true);
   const [yearStr, monthStr] = currentMonth.split('-');
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10);
@@ -164,16 +167,15 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Chrome App Shortcut Install Button */}
+            {/* Chrome App Install Button (Small) */}
             <button
               type="button"
               onClick={onOpenInstallModal}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-cyan-900/60 to-blue-900/60 hover:from-cyan-800/80 hover:to-blue-800/80 text-cyan-200 border border-cyan-700/60 hover:border-cyan-500 transition shadow-xs"
-              title="Install Chrome App or Add Home Screen Shortcut"
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-slate-800/80 hover:bg-slate-700/80 text-cyan-300 border border-slate-700 hover:border-cyan-500/50 transition cursor-pointer"
+              title="Install Chrome App"
             >
               <MonitorCheck className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden sm:inline">{isInstalled ? 'App Ready' : 'Install Chrome App'}</span>
-              <span className="sm:hidden">{isInstalled ? 'App' : 'Install'}</span>
+              <span className="hidden sm:inline text-[11px]">{isInstalled ? 'App Ready' : 'Install Chrome App'}</span>
             </button>
 
             {/* Break-even / Pricing Simulator */}
@@ -208,19 +210,28 @@ export const Header: React.FC<HeaderProps> = ({
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
 
-            {/* Logged in User Badge & Logout */}
+            {/* Logged in User Badge (Hidden by default for privacy) & Logout */}
             <div className="flex items-center pl-1 border-l border-slate-800 gap-1.5">
-              <div 
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 text-xs font-mono text-cyan-300"
-                title={`Logged in as operator: ${currentUser}`}
+              <button 
+                type="button"
+                onClick={() => setHideUsername(!hideUsername)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-xs font-mono text-cyan-300 transition cursor-pointer"
+                title={hideUsername ? "Click to show username" : "Click to hide username"}
               >
                 <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="max-w-[100px] truncate font-medium">{currentUser}</span>
-              </div>
+                <span className="max-w-[100px] truncate font-medium">
+                  {hideUsername ? '••••••••' : currentUser}
+                </span>
+                {hideUsername ? (
+                  <Eye className="w-3 h-3 text-slate-400 hover:text-slate-200" />
+                ) : (
+                  <EyeOff className="w-3 h-3 text-slate-400 hover:text-slate-200" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={onLogout}
-                className="p-1.5 text-slate-400 hover:text-rose-300 hover:bg-slate-800 rounded-lg transition"
+                className="p-1.5 text-slate-400 hover:text-rose-300 hover:bg-slate-800 rounded-lg transition cursor-pointer"
                 title="Switch User / Log Out"
               >
                 <LogOut className="w-3.5 h-3.5" />

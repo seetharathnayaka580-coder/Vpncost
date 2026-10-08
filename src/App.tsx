@@ -389,15 +389,15 @@ export default function App() {
     }
   };
 
-  // If not logged in with username-xxx, render the dedicated Password-Free Login Page
+  // If not logged in, render the Operator Login Page (requires username & password)
   if (!currentUser) {
     return (
       <>
         <LoginPage
-          onLogin={(username) => {
-            const user = saveUser(username);
+          onLogin={(username, password) => {
+            const user = saveUser(username, password);
             setCurrentUser(user);
-            showNotification(`Welcome, ${user.username}! Session ready.`);
+            showNotification('Session authenticated successfully.');
           }}
           onOpenInstallModal={triggerInstall}
           isInstallable={isInstallable}
