@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidVpnExpense(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+             data.costLkr is number && data.costLkr >= 0 &&
+             data.category is string && data.category in ['server', 'bandwidth', 'license', 'domain', 'other'] &&
+             data.month is string && data.month.size() == 7;
+    }
+
+    function isValidClientSale(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 128 &&
+             data.dataSoldGb is number && data.dataSoldGb > 0 &&
+             data.paymentReceivedLkr is number && data.paymentReceivedLkr >= 0 &&
+             data.month is string && data.month.size() == 7;
+    }
+
+    // Expenses collection
+    match /expenses/{expenseId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(expenseId) && isValidVpnExpense(incoming()) && incoming().id == expenseId;
+      allow update: if isSignedIn() && isValidId(expenseId) && isValidVpnExpense(incoming()) && incoming().id == existing().id;
+      allow delete: if isSignedIn() && isValidId(expenseId);
+    }
+
+    // Client Sales collection
+    match /sales/{saleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(saleId) && isValidClientSale(incoming()) && incoming().id == saleId;
+      allow update: if isSignedIn() && isValidId(saleId) && isValidClientSale(incoming()) && incoming().id == existing().id;
+      allow delete: if isSignedIn() && isValidId(saleId);
+    }
+  }
+}

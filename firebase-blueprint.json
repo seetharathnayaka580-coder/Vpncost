@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "VpnExpense": {
+      "title": "VpnExpense",
+      "description": "Monthly recurring server or infrastructure expense",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "category": { "type": "string", "enum": ["server", "bandwidth", "license", "domain", "other"] },
+        "costLkr": { "type": "number" },
+        "location": { "type": "string", "maxLength": 128 },
+        "dcLocation": { "type": "string", "maxLength": 128 },
+        "ipOrHost": { "type": "string", "maxLength": 128 },
+        "billingCycle": { "type": "string", "enum": ["monthly", "quarterly", "annual"] },
+        "renewalDayOfMonth": { "type": "number" },
+        "month": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" },
+        "bandwidthLimitTb": { "type": "number" },
+        "cpuCores": { "type": "number" },
+        "ramGb": { "type": "number" },
+        "diskNvmeGb": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "name", "costLkr", "month", "category"]
+    },
+    "ClientSale": {
+      "title": "ClientSale",
+      "description": "Bandwidth sale record for a client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 128 },
+        "clientContact": { "type": "string", "maxLength": 128 },
+        "dataSoldGb": { "type": "number" },
+        "paymentReceivedLkr": { "type": "number" },
+        "agreedPriceLkr": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "partial", "pending"] },
+        "paymentMethod": { "type": "string", "maxLength": 64 },
+        "serverAssignedId": { "type": "string", "maxLength": 128 },
+        "serverName": { "type": "string", "maxLength": 128 },
+        "protocol": { "type": "string", "maxLength": 64 },
+        "dateSold": { "type": "string", "maxLength": 32 },
+        "expiryDate": { "type": "string", "maxLength": 32 },
+        "month": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "clientName", "dataSoldGb", "paymentReceivedLkr", "month"]
+    }
+  },
+  "firestore": {
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/VpnExpense" },
+      "description": "Collection of monthly server and infrastructure expenses"
+    },
+    "/sales/{saleId}": {
+      "schema": { "$ref": "#/entities/ClientSale" },
+      "description": "Collection of client data sales and payment records"
+    }
+  }
+}

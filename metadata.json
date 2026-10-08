@@ -1,0 +1,6 @@
+{
+  "name": "VPN Reseller & Expense Tracker",
+  "description": "Track monthly VPN server expenses (like Leaseweb Singapore), log client data bandwidth sales, manage payments in LKR, and calculate net profits and break-even metrics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
