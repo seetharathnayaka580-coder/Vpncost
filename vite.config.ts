@@ -3,9 +3,14 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
+  // In GitHub Actions, process.env.GITHUB_REPOSITORY is "seetharathnayaka580-coder/Vpncost"
+  // When building for GitHub Pages, base must be '/Vpncost/' so assets load from /Vpncost/assets/
+  const repo = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split('/')[1] : 'Vpncost';
+  const base = command === 'build' ? `/${repo}/` : '/';
+
   return {
-    base: './',
+    base,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
