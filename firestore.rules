@@ -7,10 +7,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -39,20 +35,20 @@ service cloud.firestore {
              data.month is string && data.month.size() == 7;
     }
 
-    // Expenses collection
+    // Expenses collection (auto-synced)
     match /expenses/{expenseId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidId(expenseId) && isValidVpnExpense(incoming()) && incoming().id == expenseId;
-      allow update: if isSignedIn() && isValidId(expenseId) && isValidVpnExpense(incoming()) && incoming().id == existing().id;
-      allow delete: if isSignedIn() && isValidId(expenseId);
+      allow read: if true;
+      allow create: if isValidId(expenseId) && isValidVpnExpense(incoming()) && incoming().id == expenseId;
+      allow update: if isValidId(expenseId) && isValidVpnExpense(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(expenseId);
     }
 
-    // Client Sales collection
+    // Client Sales collection (auto-synced)
     match /sales/{saleId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidId(saleId) && isValidClientSale(incoming()) && incoming().id == saleId;
-      allow update: if isSignedIn() && isValidId(saleId) && isValidClientSale(incoming()) && incoming().id == existing().id;
-      allow delete: if isSignedIn() && isValidId(saleId);
+      allow read: if true;
+      allow create: if isValidId(saleId) && isValidClientSale(incoming()) && incoming().id == saleId;
+      allow update: if isValidId(saleId) && isValidClientSale(incoming()) && incoming().id == existing().id;
+      allow delete: if isValidId(saleId);
     }
   }
 }

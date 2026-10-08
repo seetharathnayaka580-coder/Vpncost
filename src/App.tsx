@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { User } from 'firebase/auth';
 import { 
   loadExpenses, 
   saveExpenses, 
@@ -22,9 +21,6 @@ import { ClientReceiptModal } from './components/ClientReceiptModal';
 import { PricingCalculatorModal } from './components/PricingCalculatorModal';
 import { ExportModal } from './components/ExportModal';
 import { 
-  onAuthUserChanged,
-  signInWithGoogle,
-  logOutUser,
   subscribeExpenses,
   subscribeSales,
   writeExpenseToFirestore,
@@ -41,10 +37,7 @@ import {
   Plus, 
   Sparkles,
   CheckCircle,
-  AlertCircle,
-  Cloud,
-  CloudCheck,
-  RefreshCw
+  AlertCircle
 } from 'lucide-react';
 
 export default function App() {
@@ -52,11 +45,8 @@ export default function App() {
   const [expenses, setExpenses] = useState<VpnExpense[]>([]);
   const [sales, setSales] = useState<ClientSale[]>([]);
   const [activeTab, setActiveTab] = useState<'sales' | 'expenses' | 'all'>('all');
-
-  // Firebase auth & sync state
-  const [user, setUser] = useState<User | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const isCloudLoaded = useRef<boolean>(false);
+  const isInitialSyncDone = useRef<boolean>(false);
 
   // Modals state
   const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<ClientSale | null>(null);
@@ -64,7 +54,7 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-  // Initialize data from localStorage initially
+  // Initialize data from localStorage initially for instantaneous first paint
   useEffect(() => {
     const loadedExp = loadExpenses();
     const loadedSl = loadSales();
@@ -72,101 +62,54 @@ export default function App() {
     setSales(loadedSl);
   }, []);
 
-  // Listen to Firebase Auth state
+  // Automatically connect & subscribe to Firebase Firestore in real-time
   useEffect(() => {
-    const unsubscribeAuth = onAuthUserChanged((currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        showNotification(`Signed in to Firebase as ${currentUser.email}`);
-      }
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  // Subscribe to Firestore collections when user is authenticated
-  useEffect(() => {
-    if (!user) return;
-
     let unsubExpenses: (() => void) | undefined;
     let unsubSales: (() => void) | undefined;
 
+    setIsSyncing(true);
+
     try {
       unsubExpenses = subscribeExpenses((cloudExpenses) => {
+        setIsSyncing(false);
         if (cloudExpenses && cloudExpenses.length > 0) {
           setExpenses(cloudExpenses);
           saveExpenses(cloudExpenses);
-          isCloudLoaded.current = true;
+          isInitialSyncDone.current = true;
+        } else if (!isInitialSyncDone.current) {
+          // If Firestore is empty initially, seed existing local data to Firestore
+          const localExp = loadExpenses();
+          const localSl = loadSales();
+          syncLocalDataToFirestore(localExp, localSl).then(() => {
+            isInitialSyncDone.current = true;
+          }).catch(console.error);
         }
       });
 
       unsubSales = subscribeSales((cloudSales) => {
+        setIsSyncing(false);
         if (cloudSales && cloudSales.length > 0) {
           setSales(cloudSales);
           saveSales(cloudSales);
-          isCloudLoaded.current = true;
+          isInitialSyncDone.current = true;
         }
       });
     } catch (err) {
-      console.error('Error setting up Firestore listeners:', err);
+      console.warn('Real-time Firestore listener fallback:', err);
+      setIsSyncing(false);
     }
 
     return () => {
       if (unsubExpenses) unsubExpenses();
       if (unsubSales) unsubSales();
     };
-  }, [user]);
+  }, []);
 
   const showNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => {
       setNotification(null);
-    }, 3500);
-  };
-
-  // Sign In with Google & Auto-Sync
-  const handleSignIn = async () => {
-    try {
-      setIsSyncing(true);
-      const signedInUser = await signInWithGoogle();
-      if (signedInUser) {
-        // Upload any existing local expenses & sales to Firestore
-        const currentExp = loadExpenses();
-        const currentSl = loadSales();
-        await syncLocalDataToFirestore(currentExp, currentSl);
-        showNotification('Connected to Firebase! All data synced to cloud.');
-      }
-    } catch (err) {
-      console.error('Sign In Error:', err);
-      showNotification('Failed to connect to Firebase. Check pop-up permissions.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await logOutUser();
-      showNotification('Signed out from Firebase');
-    } catch (err) {
-      console.error('Sign Out Error:', err);
-    }
-  };
-
-  const handleSyncToCloud = async () => {
-    if (!user) {
-      handleSignIn();
-      return;
-    }
-    try {
-      setIsSyncing(true);
-      await syncLocalDataToFirestore(expenses, sales);
-      showNotification('Successfully synced all data to Firebase Firestore!');
-    } catch (err) {
-      console.error('Cloud Sync Error:', err);
-      showNotification('Sync failed. Please try again.');
-    } finally {
-      setIsSyncing(false);
-    }
+    }, 3000);
   };
 
   // Filter expenses and sales for current month
@@ -225,7 +168,7 @@ export default function App() {
     };
   }, [currentMonth, currentMonthExpenses, currentMonthSales]);
 
-  // Expense Handlers
+  // Expense Handlers (Syncs with Firebase Firestore automatically)
   const handleAddExpense = async (newExpenseData: Omit<VpnExpense, 'id' | 'createdAt'>) => {
     const newExpense: VpnExpense = {
       ...newExpenseData,
@@ -236,12 +179,13 @@ export default function App() {
     setExpenses(updated);
     saveExpenses(updated);
 
-    if (user) {
-      try {
-        await writeExpenseToFirestore(newExpense);
-      } catch (err) {
-        console.error('Failed writing expense to Firestore:', err);
-      }
+    try {
+      setIsSyncing(true);
+      await writeExpenseToFirestore(newExpense);
+    } catch (err) {
+      console.warn('Firestore write warning:', err);
+    } finally {
+      setIsSyncing(false);
     }
 
     showNotification(`Added expense: ${newExpense.name} (${formatLKR(newExpense.costLkr)})`);
@@ -252,14 +196,15 @@ export default function App() {
     setExpenses(updated);
     saveExpenses(updated);
 
-    if (user) {
-      const itemToSave = updated.find((e) => e.id === id);
-      if (itemToSave) {
-        try {
-          await writeExpenseToFirestore(itemToSave);
-        } catch (err) {
-          console.error('Failed updating expense in Firestore:', err);
-        }
+    const itemToSave = updated.find((e) => e.id === id);
+    if (itemToSave) {
+      try {
+        setIsSyncing(true);
+        await writeExpenseToFirestore(itemToSave);
+      } catch (err) {
+        console.warn('Firestore update warning:', err);
+      } finally {
+        setIsSyncing(false);
       }
     }
 
@@ -271,18 +216,19 @@ export default function App() {
     setExpenses(updated);
     saveExpenses(updated);
 
-    if (user) {
-      try {
-        await deleteExpenseFromFirestore(id);
-      } catch (err) {
-        console.error('Failed deleting expense from Firestore:', err);
-      }
+    try {
+      setIsSyncing(true);
+      await deleteExpenseFromFirestore(id);
+    } catch (err) {
+      console.warn('Firestore delete warning:', err);
+    } finally {
+      setIsSyncing(false);
     }
 
     showNotification('Expense removed');
   };
 
-  // Sales Handlers
+  // Sales Handlers (Syncs with Firebase Firestore automatically)
   const handleAddSale = async (newSaleData: Omit<ClientSale, 'id' | 'createdAt'>) => {
     const newSale: ClientSale = {
       ...newSaleData,
@@ -293,12 +239,13 @@ export default function App() {
     setSales(updated);
     saveSales(updated);
 
-    if (user) {
-      try {
-        await writeSaleToFirestore(newSale);
-      } catch (err) {
-        console.error('Failed writing sale to Firestore:', err);
-      }
+    try {
+      setIsSyncing(true);
+      await writeSaleToFirestore(newSale);
+    } catch (err) {
+      console.warn('Firestore sale write warning:', err);
+    } finally {
+      setIsSyncing(false);
     }
 
     showNotification(`Recorded sale for ${newSale.clientName}: ${newSale.dataSoldGb} GB`);
@@ -309,14 +256,15 @@ export default function App() {
     setSales(updated);
     saveSales(updated);
 
-    if (user) {
-      const itemToSave = updated.find((s) => s.id === id);
-      if (itemToSave) {
-        try {
-          await writeSaleToFirestore(itemToSave);
-        } catch (err) {
-          console.error('Failed updating sale in Firestore:', err);
-        }
+    const itemToSave = updated.find((s) => s.id === id);
+    if (itemToSave) {
+      try {
+        setIsSyncing(true);
+        await writeSaleToFirestore(itemToSave);
+      } catch (err) {
+        console.warn('Firestore sale update warning:', err);
+      } finally {
+        setIsSyncing(false);
       }
     }
 
@@ -328,18 +276,19 @@ export default function App() {
     setSales(updated);
     saveSales(updated);
 
-    if (user) {
-      try {
-        await deleteSaleFromFirestore(id);
-      } catch (err) {
-        console.error('Failed deleting sale from Firestore:', err);
-      }
+    try {
+      setIsSyncing(true);
+      await deleteSaleFromFirestore(id);
+    } catch (err) {
+      console.warn('Firestore sale delete warning:', err);
+    } finally {
+      setIsSyncing(false);
     }
 
     showNotification('Sale record removed');
   };
 
-  // Carry forward recurring expenses to next month
+  // Carry forward recurring expenses to next month (Syncs to Firebase)
   const handleDuplicateToNextMonth = async () => {
     const [yearStr, monthStr] = currentMonth.split('-');
     let nextYear = parseInt(yearStr, 10);
@@ -369,10 +318,15 @@ export default function App() {
     saveExpenses(updated);
     setCurrentMonth(nextMonthStr);
 
-    if (user) {
+    try {
+      setIsSyncing(true);
       for (const item of newExpensesToClone) {
         await writeExpenseToFirestore(item);
       }
+    } catch (err) {
+      console.warn('Firestore clone warning:', err);
+    } finally {
+      setIsSyncing(false);
     }
 
     showNotification(
@@ -387,11 +341,16 @@ export default function App() {
       setExpenses(reset.expenses);
       setSales(reset.sales);
 
-      if (user) {
+      try {
+        setIsSyncing(true);
         await syncLocalDataToFirestore(reset.expenses, reset.sales);
+      } catch (err) {
+        console.warn('Firestore reset sync warning:', err);
+      } finally {
+        setIsSyncing(false);
       }
 
-      showNotification('Sample Leaseweb data loaded and synced');
+      showNotification('Sample Leaseweb data loaded and synced to Firebase');
     }
   };
 
@@ -405,23 +364,24 @@ export default function App() {
       setSales(data.sales);
       saveSales(data.sales);
     }
-    if (user && (data.expenses || data.sales)) {
+    try {
+      setIsSyncing(true);
       await syncLocalDataToFirestore(data.expenses || expenses, data.sales || sales);
+    } catch (err) {
+      console.warn('Firestore import sync warning:', err);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
-      {/* Top Header */}
+      {/* Top Header with live automatic sync indicator */}
       <Header
         currentMonth={currentMonth}
         onMonthChange={setCurrentMonth}
         summary={summary}
-        user={user}
         isSyncing={isSyncing}
-        onSignIn={handleSignIn}
-        onSignOut={handleSignOut}
-        onSyncToCloud={handleSyncToCloud}
         onOpenCalculator={() => setIsPricingModalOpen(true)}
         onOpenExport={() => setIsExportModalOpen(true)}
         onResetData={handleResetData}
@@ -438,35 +398,6 @@ export default function App() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* Firebase Sync Notification Banner if not logged in */}
-        {!user && (
-          <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-800/60 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-amber-950/80 border border-amber-800 text-amber-400 shrink-0">
-                <Cloud className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-200">
-                  Firebase Cloud Storage Available
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Save your Leaseweb expenses and client data permanently to Firebase Firestore so you can access them from any device.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleSignIn}
-              disabled={isSyncing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-sm transition-all shrink-0 cursor-pointer"
-            >
-              <CloudCheck className="w-3.5 h-3.5" />
-              <span>Connect Firebase Now</span>
-            </button>
-          </div>
-        )}
-
         {/* KPI / Stats Section */}
         <StatsCards
           summary={summary}

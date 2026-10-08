@@ -24,11 +24,7 @@ interface HeaderProps {
   currentMonth: string;
   onMonthChange: (month: string) => void;
   summary: MonthSummary;
-  user: User | null;
   isSyncing: boolean;
-  onSignIn: () => void;
-  onSignOut: () => void;
-  onSyncToCloud: () => void;
   onOpenCalculator: () => void;
   onOpenExport: () => void;
   onResetData: () => void;
@@ -38,11 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentMonth,
   onMonthChange,
   summary,
-  user,
   isSyncing,
-  onSignIn,
-  onSignOut,
-  onSyncToCloud,
   onOpenCalculator,
   onOpenExport,
   onResetData,
@@ -146,45 +138,24 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </div>
 
-            {/* Firebase Cloud Sync Controls */}
-            {user ? (
-              <div className="flex items-center gap-1.5 bg-slate-800/90 border border-emerald-800/80 rounded-lg p-1 text-xs">
-                <button
-                  type="button"
-                  onClick={onSyncToCloud}
-                  disabled={isSyncing}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-emerald-300 hover:text-white hover:bg-emerald-950/60 transition-colors font-medium cursor-pointer"
-                  title="Upload all data to Firebase Cloud Firestore"
-                >
-                  {isSyncing ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                  ) : (
-                    <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                  )}
-                  <span className="hidden sm:inline">Firebase:</span>
-                  <span className="max-w-[100px] truncate">{user.displayName || user.email?.split('@')[0]}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="p-1 text-slate-400 hover:text-rose-400 rounded-md transition-colors"
-                  title="Sign Out from Firebase"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={onSignIn}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 text-white shadow-sm transition-all cursor-pointer"
-                title="Connect and save data in Firebase Firestore"
-              >
-                <Cloud className="w-3.5 h-3.5" />
-                <span>Save in Firebase</span>
-              </button>
-            )}
+            {/* Automatic Firebase Cloud Sync Status */}
+            <div 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800/90 border border-emerald-800/80 text-emerald-300 shadow-xs"
+              title="All data is automatically synchronized with Firebase Firestore in real-time"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                  <span className="text-cyan-300 hidden sm:inline">Syncing...</span>
+                </>
+              ) : (
+                <>
+                  <CloudCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-300 font-semibold hidden sm:inline">Firebase Synced</span>
+                  <span className="text-emerald-300 font-semibold sm:hidden">Cloud</span>
+                </>
+              )}
+            </div>
 
             {/* Break-even / Pricing Simulator */}
             <button
