@@ -3,18 +3,15 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(({ command }) => {
-  // In GitHub Actions, process.env.GITHUB_REPOSITORY is "seetharathnayaka580-coder/Vpncost"
-  // When building for GitHub Pages, base must be '/Vpncost/' so assets load from /Vpncost/assets/
-  const repo = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split('/')[1] : 'Vpncost';
-  const base = command === 'build' ? `/${repo}/` : '/';
-
+export default defineConfig(() => {
   return {
-    base,
+    // Relative base './' ensures assets load correctly on custom domains (e.g. vpncost.nvderttf56.pp.ua)
+    // as well as default GitHub Pages subdomains without 404s
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve('.'),
       },
     },
     server: {

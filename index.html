@@ -9,21 +9,8 @@
     <meta property="og:description" content="Track monthly VPN server expenses (like Leaseweb Singapore), log client data bandwidth sales, manage payments in LKR, and calculate net profits and break-even metrics." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      window.addEventListener('error', function(event) {
-        var root = document.getElementById('root');
-        if (root && root.innerHTML.trim() === '') {
-          root.innerHTML = '<div style="background:#020617;color:#f8fafc;padding:32px;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
-            '<div style="background:#0f172a;border:1px solid #334155;border-radius:16px;padding:24px;max-width:480px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.5);">' +
-            '<h2 style="color:#38bdf8;margin-top:0;">VPN Reseller Tracker</h2>' +
-            '<p style="color:#94a3b8;font-size:14px;">If you see this, please ensure you visit the repository URL:</p>' +
-            '<a href="' + window.location.origin + '/Vpncost/" style="display:inline-block;margin-top:12px;background:#0284c7;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600;font-size:13px;">Open https://' + window.location.host + '/Vpncost/</a>' +
-            '</div></div>';
-        }
-      });
-    </script>
   </head>
-  <body>
+  <body class="bg-slate-950 text-slate-100 antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

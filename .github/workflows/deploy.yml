@@ -31,14 +31,23 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
       - name: Build site
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Ensure CNAME and .nojekyll in dist
+        run: |
+          touch ./dist/.nojekyll
+          if [ -f public/CNAME ]; then
+            cp public/CNAME ./dist/CNAME
+          elif [ -f CNAME ]; then
+            cp CNAME ./dist/CNAME
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

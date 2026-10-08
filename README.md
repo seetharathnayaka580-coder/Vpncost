@@ -46,7 +46,17 @@ git push -u origin main
 
 ---
 
-### Step 3: Authorize your GitHub URL in Firebase (for Google Sign-In)
+### Step 3: Custom Domain Setup (e.g. vpncost.nvderttf56.pp.ua)
+
+If using a custom domain:
+1. In your GitHub repository, go to **Settings** > **Pages** > **Custom domain** and enter `vpncost.nvderttf56.pp.ua`.
+2. Ensure DNS records for your domain point to GitHub Pages (`185.199.108.153`, `185.199.109.153`, etc., or CNAME to `<username>.github.io`).
+3. Check the **Enforce HTTPS** box once DNS propagates.
+4. In [Firebase Console](https://console.firebase.google.com/) > **Authentication** > **Settings** > **Authorized domains**, add `vpncost.nvderttf56.pp.ua`.
+
+---
+
+### Step 4: Authorize your Domain in Firebase
 
 To allow Google Sign-In to work on your new GitHub Pages website:
 

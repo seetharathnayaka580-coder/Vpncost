@@ -54,7 +54,7 @@ export function subscribeExpenses(
       onData(items);
     },
     (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.warn('Firestore Expenses subscription notice:', error);
     }
   );
 }
@@ -74,7 +74,7 @@ export function subscribeSales(
       onData(items);
     },
     (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.warn('Firestore Sales subscription notice:', error);
     }
   );
 }
