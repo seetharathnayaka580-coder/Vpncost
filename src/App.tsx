@@ -20,6 +20,10 @@ import { SalesManager } from './components/SalesManager';
 import { ClientReceiptModal } from './components/ClientReceiptModal';
 import { PricingCalculatorModal } from './components/PricingCalculatorModal';
 import { ExportModal } from './components/ExportModal';
+import { LoginPage } from './components/LoginPage';
+import { InstallChromeAppModal } from './components/InstallChromeAppModal';
+import { usePWAInstall } from './hooks/usePWAInstall';
+import { getSavedUser, saveUser, clearUser, AuthUser } from './utils/authSession';
 import { 
   subscribeExpenses,
   subscribeSales,
@@ -42,11 +46,22 @@ import {
 
 export default function App() {
   const [currentMonth, setCurrentMonth] = useState<string>(getCurrentMonthStr());
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getSavedUser());
   const [expenses, setExpenses] = useState<VpnExpense[]>([]);
   const [sales, setSales] = useState<ClientSale[]>([]);
   const [activeTab, setActiveTab] = useState<'sales' | 'expenses' | 'all'>('all');
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const isInitialSyncDone = useRef<boolean>(false);
+
+  // Chrome PWA Install Hook
+  const { 
+    isInstallable, 
+    isInstalled, 
+    isIOS, 
+    showGuideModal, 
+    setShowGuideModal, 
+    triggerInstall 
+  } = usePWAInstall();
 
   // Modals state
   const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<ClientSale | null>(null);
@@ -374,6 +389,32 @@ export default function App() {
     }
   };
 
+  // If not logged in with username-xxx, render the dedicated Password-Free Login Page
+  if (!currentUser) {
+    return (
+      <>
+        <LoginPage
+          onLogin={(username) => {
+            const user = saveUser(username);
+            setCurrentUser(user);
+            showNotification(`Welcome, ${user.username}! Session ready.`);
+          }}
+          onOpenInstallModal={triggerInstall}
+          isInstallable={isInstallable}
+          isInstalled={isInstalled}
+        />
+        <InstallChromeAppModal
+          isOpen={showGuideModal}
+          onClose={() => setShowGuideModal(false)}
+          isInstallable={isInstallable}
+          isInstalled={isInstalled}
+          isIOS={isIOS}
+          onTriggerInstall={triggerInstall}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
       {/* Top Header with live automatic sync indicator */}
@@ -382,9 +423,16 @@ export default function App() {
         onMonthChange={setCurrentMonth}
         summary={summary}
         isSyncing={isSyncing}
+        currentUser={currentUser.username}
+        onLogout={() => {
+          clearUser();
+          setCurrentUser(null);
+        }}
         onOpenCalculator={() => setIsPricingModalOpen(true)}
         onOpenExport={() => setIsExportModalOpen(true)}
         onResetData={handleResetData}
+        onOpenInstallModal={triggerInstall}
+        isInstalled={isInstalled}
       />
 
       {/* Floating Notification */}
@@ -513,6 +561,16 @@ export default function App() {
         expenses={currentMonthExpenses}
         sales={currentMonthSales}
         onImportData={handleImportData}
+      />
+
+      {/* Chrome App Shortcut Install Guide Modal */}
+      <InstallChromeAppModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+        isInstallable={isInstallable}
+        isInstalled={isInstalled}
+        isIOS={isIOS}
+        onTriggerInstall={triggerInstall}
       />
     </div>
   );
